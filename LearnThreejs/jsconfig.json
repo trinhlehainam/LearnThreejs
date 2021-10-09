@@ -1,0 +1,18 @@
+{
+  "exclude": [
+    "**/bin",
+    "**/bower_components",
+    "**/jspm_packages",
+    "**/node_modules",
+    "**/obj",
+    "**/platforms"
+  ],
+
+  "include": [
+    "src/**/*",
+    "node_modules/three/src/**/*",
+    "node_modules/three/build/**/*",
+    "node_modules/stats.js/src/**/*",
+    "node_modules/stats.js/build/**/*"
+  ]
+}
