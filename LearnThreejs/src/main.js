@@ -31,28 +31,6 @@ function main() {
     const axes = new THREE.AxisHelper(40);
     scene.add(axes);
 
-    const planeGeo = new THREE.PlaneGeometry(60, 20);
-    const planeMat = new THREE.MeshPhongMaterial({ color: 0xAAAAAA });
-    const plane = new THREE.Mesh(planeGeo, planeMat);
-    plane.rotation.x = -0.5 * Math.PI;
-    plane.position.set(15, 0, 0);
-    plane.receiveShadow = true;
-    scene.add(plane);
-
-    const sphereGeo = new THREE.SphereGeometry(4, 20, 20);
-    const sphereMat = new THREE.MeshPhongMaterial({ color: 0x7777FF });
-    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-    sphere.castShadow = true;
-    sphere.position.set(20, 4, 2);
-    scene.add(sphere);
-
-    const cubeGeo = new THREE.BoxGeometry(4, 4, 4);
-    const cubeMat = new THREE.MeshPhongMaterial({ color: 0xFF0000 });
-    const cube = new THREE.Mesh(cubeGeo, cubeMat);
-    cube.castShadow = true;
-    cube.position.set(-4, 3, 0);
-    scene.add(cube);
-
     const lightColor = 0xffffff;
     const lightIntensity = 1;
     const light = new THREE.SpotLight(lightColor, lightIntensity);
@@ -60,6 +38,14 @@ function main() {
     light.shadow.mapSize = new THREE.Vector2(1024, 1024);
     light.position.set(-40, 40, -15);
     scene.add(light);
+
+    const planeGeo = new THREE.PlaneGeometry(60, 40);
+    const planeMat = new THREE.MeshPhongMaterial({color: 0xaaaaaa});
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+    plane.receiveShadow = true;
+    plane.rotation.x = -0.5 * Math.PI;
+    plane.position.set(15, 0, 0);
+    scene.add(plane);
 
     function onResize(renderer) {
         const canvas = renderer.domElement;
@@ -73,13 +59,44 @@ function main() {
     }
 
     const controls = new function() {
-        this.rotationSpeed = 1;
-        this.bouncingSpeed = 1;
+        this.numObjects = scene.children.length;
+        this.addCube = function() {
+            const size = Math.round(Math.random() * 5);
+            const cubeGeo = new THREE.BoxGeometry(size, size, size);
+            const cubeMat = new THREE.MeshPhongMaterial({color : Math.random() * 0xffffff});
+            const cube = new THREE.Mesh(cubeGeo, cubeMat);
+
+            cube.name = "cube" + scene.children.length;
+
+            cube.castShadow = true;
+
+            cube.position.x = -30 + 15 + Math.round(Math.random() * 60);
+            cube.position.z = -20 + Math.round(Math.random() * 40);
+            cube.position.y = Math.round(Math.random() * 5);
+
+            cube.rotation.x = Math.random(Math.PI);
+            cube.rotation.y = Math.random(Math.PI);
+            cube.rotation.z = Math.random(Math.PI);
+
+            scene.add(cube);
+            console.log("Created : " + cube);
+            this.numObjects = scene.children.length;
+        }
+
+        this.deleteCube = function() {
+            const allObject = scene.children; 
+            const lastObject = allObject[allObject.length - 1];
+            console.log("Deleted : " + lastObject);
+            console.log(lastObject);
+            scene.remove(lastObject);
+            this.numObjects = scene.children.length;
+        }
     }
 
     const gui = new dat.GUI();
-    gui.add(controls, 'rotationSpeed', 1, 2);
-    gui.add(controls, 'bouncingSpeed', 1, 2);
+    gui.add(controls, 'addCube');
+    gui.add(controls, 'deleteCube');
+    gui.add(controls, 'numObjects');
 
     function render(time) {
         stats.update();
@@ -91,13 +108,6 @@ function main() {
             camera.aspect = canvas.clientWidth / canvas.clientHeight;
             camera.updateProjectionMatrix();
         }
-
-        cube.rotation.x = time * controls.rotationSpeed;
-        cube.rotation.y = time * controls.rotationSpeed;
-        cube.rotation.z = time * controls.rotationSpeed;
-
-        sphere.position.x = 20 + 10 * (Math.cos(time * controls.bouncingSpeed));
-        sphere.position.y = 2 + 10 * Math.abs(Math.sin(time * controls.bouncingSpeed));
 
         renderer.render(scene, camera);
         requestAnimationFrame(render);
