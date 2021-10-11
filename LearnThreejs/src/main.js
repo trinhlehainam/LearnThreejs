@@ -1,6 +1,6 @@
-import * as THREE from '../node_modules/three/build/three.module.js';
-import Stats from '../node_modules/stats.js/src/Stats.js'
-import * as dat from '../node_modules/dat.gui/build/dat.gui.module.js'
+import * as THREE from '../lib/three/three.module.js';
+import Stats from '../lib/stats.js/Stats.js'
+import * as dat from '../lib/dat.gui/dat.gui.module.js'
 
 function initStats(type) {
     const panelType = (typeof type !== 'undefined' && type) && (!isNaN(type)) ? parseInt(type) : 0;
