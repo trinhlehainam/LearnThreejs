@@ -1,5 +1,5 @@
 import * as THREE from '../lib/three/three.js';
-import TrackballControls from '../lib/three/controls/TrackballControls.js';
+import {TrackballControls} from '../lib/three/TrackballControls.js';
 import Stats from '../lib/util/Stats.js';
 import * as dat from '../lib/util/dat.gui.module.js';
 
