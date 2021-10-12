@@ -1,6 +1,7 @@
-import * as THREE from '../lib/three/three.module.js';
-import Stats from '../lib/stats.js/Stats.js'
-import * as dat from '../lib/dat.gui/dat.gui.module.js'
+import * as THREE from '../lib/three/three.js';
+import TrackballControls from '../lib/three/controls/TrackballControls.js';
+import Stats from '../lib/util/Stats.js';
+import * as dat from '../lib/util/dat.gui.module.js';
 
 function initStats(type) {
     const panelType = (typeof type !== 'undefined' && type) && (!isNaN(type)) ? parseInt(type) : 0;
@@ -8,6 +9,20 @@ function initStats(type) {
     stats.showPanel(panelType);
     document.body.appendChild(stats.dom);
     return stats;
+}
+
+function initTrackballControls(camera, renderer) {
+    var trackballControls = new TrackballControls(camera, renderer.domElement);
+    trackballControls.rotateSpeed = 1.0;
+    trackballControls.zoomSpeed = 1.2;
+    trackballControls.panSpeed = 0.8;
+    trackballControls.noZoom = false;
+    trackballControls.noPan = false;
+    trackballControls.staticMoving = true;
+    trackballControls.dynamicDampingFactor = 0.3;
+    trackballControls.keys = [65, 83, 68];
+
+    return trackballControls;
 }
 
 function main() {
@@ -98,10 +113,12 @@ function main() {
     gui.add(controls, 'deleteCube');
     gui.add(controls, 'numObjects');
 
-    function render(time) {
-        stats.update();
+    const clock = new THREE.Clock();
+    const trackBall = initTrackballControls(camera, renderer);
 
-        time *= 0.001;
+    function render() {
+        stats.update();
+        trackBall.update(clock.getDelta());
 
         if (onResize(renderer)) {
             const canvas = renderer.domElement;
