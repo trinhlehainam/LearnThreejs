@@ -50,9 +50,9 @@ class App{
         const loader = new GLTFLoader().setPath('../../assets/plane/');
         loader.load(
            'microplane.glb',
-            gltf => {
-                this.scene.add(gltf.scene);
-                this.plane = gltf.scene;
+            model => {
+                this.scene.add(model.scene);
+                this.plane = model.scene;
                 this.loadingBar.visible = false;
                 this.renderer.setAnimationLoop(this.render.bind(this));
             },
