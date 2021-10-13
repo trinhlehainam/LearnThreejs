@@ -1,7 +1,8 @@
-import * as THREE from '../lib/three/three.js';
-import {TrackballControls} from '../lib/three/TrackballControls.js';
-import Stats from '../lib/util/Stats.js';
-import * as dat from '../lib/util/dat.gui.module.js';
+import * as THREE from '../../lib/three/three.js';
+import {TrackballControls} from '../../lib/three/TrackballControls.js';
+import Stats from '../../lib/util/Stats.js';
+import * as dat from '../../lib/util/dat.gui.module.js';
+import {GLTFLoader} from '../../lib/three/GLTFLoader.js'
 
 function initStats(type) {
     const panelType = (typeof type !== 'undefined' && type) && (!isNaN(type)) ? parseInt(type) : 0;
@@ -24,6 +25,7 @@ function initTrackballControls(camera, renderer) {
 
     return trackballControls;
 }
+
 
 function main() {
     const stats = initStats();
@@ -61,6 +63,7 @@ function main() {
     plane.rotation.x = -0.5 * Math.PI;
     plane.position.set(15, 0, 0);
     scene.add(plane);
+    
 
     function onResize(renderer) {
         const canvas = renderer.domElement;
@@ -116,6 +119,25 @@ function main() {
     const clock = new THREE.Clock();
     const trackBall = initTrackballControls(camera, renderer);
 
+    let obj;
+    const loader = new GLTFLoader();
+    loader.load(
+        '../../assets/plane/microplane.glb',
+        gltf => {
+            obj = gltf.scene;
+            scene.add(obj);
+            obj.position.set(0,5,0);
+            obj.rotateY(1);
+            requestAnimationFrame(render);
+        },
+        progress => {
+
+        },
+        err => {
+            console.error(err);
+        }
+    )
+
     function render() {
         stats.update();
         trackBall.update(clock.getDelta());
@@ -126,11 +148,12 @@ function main() {
             camera.updateProjectionMatrix();
         }
 
+        obj.rotateY(0.01);
+
         renderer.render(scene, camera);
         requestAnimationFrame(render);
     }
 
-    requestAnimationFrame(render);
 }
 
 main();
