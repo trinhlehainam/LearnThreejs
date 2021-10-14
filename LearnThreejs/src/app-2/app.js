@@ -1,15 +1,16 @@
-import * as THREE from '../../lib/three/three.js';
+import * as THREE from '../../lib/three/three.js'
 import {OrbitControls} from '../../lib/three/OrbitControls.js'
 import {GLTFLoader} from '../../lib/three/GLTFLoader.js'
 import {LoadingBar} from '../../lib/util/LoadingBar.js'
+import {DRACOLoader} from '../../lib/three/DRACOLoader.js'
 
 class App{
     constructor() {
-        this.renderer = new THREE.WebGLRenderer();
-        document.body.appendChild(this.renderer.domElement);
-        this.renderer.setSize(window.innerWidth/window.innerHeight);
+        this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.outputEncoding = THREE.sRGBEncoding;
+        document.body.appendChild(this.renderer.domElement);
 
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0xaaaa00);
@@ -26,38 +27,39 @@ class App{
 
         this.clock = new THREE.Clock();
 
-        const cubeGeo = new THREE.BoxGeometry(1, 1, 1);
-        const cubeMat = new THREE.MeshPhongMaterial({color: 0xff0000});
-        this.cube = new THREE.Mesh(cubeGeo, cubeMat);
-        this.scene.add(this.cube);
+        this.control = new OrbitControls(this.camera, this.renderer.domElement);
 
         this.loadingBar = new LoadingBar();
-        this.loadModel();
-
-        this.control = new OrbitControls(this.camera, this.renderer.domElement);
+        this.loadModel('../../assets/plane/microplane.glb');
         
         window.addEventListener('resize', this.resize.bind(this));
+
+        console.log("App is constructed !");
     }
 
     resize() {
         this.camera.aspect = window.innerWidth/window.innerHeight;
         this.camera.updateProjectionMatrix();
 
-        this.renderer.setSize(window.innerWidth/window.innerHeight);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    loadModel() {
-        const loader = new GLTFLoader().setPath('../../assets/plane/');
+    loadModel(url) {
+        const loader = new GLTFLoader();
+        const draco = new DRACOLoader();
+        draco.setDecoderPath('../../lib/three/draco/');
+        loader.setDRACOLoader(draco);
+
         loader.load(
-           'microplane.glb',
+            url,
             model => {
-                this.scene.add(model.scene);
                 this.plane = model.scene;
+                this.scene.add(this.plane);
                 this.loadingBar.visible = false;
                 this.renderer.setAnimationLoop(this.render.bind(this));
             },
-            progress => {
-                this.loadingBar.progress = progress.loaded/progress.total;
+            xhr => {
+                this.loadingBar.progress = xhr.loaded / xhr.total;
             },
             err => {
                 console.error(err);
@@ -66,7 +68,8 @@ class App{
     }
 
     render() {
-        this.plane.rotateY(1.0 * this.clock.getDelta()); 
+        const dt = this.clock.getDelta()
+        this.plane.rotateY(1.0 * dt);
         this.renderer.render(this.scene, this.camera);
     }
 }
