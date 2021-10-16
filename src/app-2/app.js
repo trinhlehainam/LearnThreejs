@@ -30,6 +30,25 @@ class App{
 
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
         this.camera.position.set(0, 2, 5);
+        
+        const loader = new THREE.TextureLoader();
+        this.mats = {
+            ball1 : new THREE.MeshPhongMaterial({map: loader.load('../../assets/pool-table/1ball.png')}),
+            ball2 : new THREE.MeshPhongMaterial({map: loader.load('../../assets/pool-table/2ball.png')}),
+        }
+
+        const ballGeo = new THREE.SphereGeometry(1.5);
+        const matKeys = Object.keys(this.mats);
+        this.balls = new Array(matKeys.length);
+        for (let i = 0; i < this.balls.length; ++i){
+            this.balls[i] = new THREE.Mesh(ballGeo, this.mats[matKeys[i]]);
+            const ball = this.balls[i];
+            ball.position.set(Math.random()*30, 1.5, Math.random()*20);
+            ball.castShadow = true;
+            ball.receiveShadow = true;
+            this.scene.add(ball);
+        }
+        console.log(this.balls);
 
         const planeGeo = new THREE.PlaneGeometry(60, 40);
         const planeMat = new THREE.MeshPhongMaterial({color: 0x999999});
@@ -38,14 +57,6 @@ class App{
         plane.rotateX(-0.5*Math.PI);
         this.scene.add(plane);
 
-        const cubeGeo = new THREE.BoxGeometry(2, 2, 2);
-        const cubeMat = new THREE.MeshPhongMaterial({color: 0xff0000});
-        const cube = new THREE.Mesh(cubeGeo, cubeMat);
-        cube.castShadow = true;
-        cube.receiveShadow = true;
-        cube.position.set(2,2,2);
-        this.scene.add(cube);
-
         this.ambient = new THREE.AmbientLight(0x222222, 1);
         this.scene.add(this.ambient);
 
@@ -53,10 +64,12 @@ class App{
         this.light.castShadow = true;
         this.light.position.set(2, 10, 10);
         this.light.target.position.set(0,0,0);
+        this.light.shadow.mapSize.width = 2048;
+        this.light.shadow.mapSize.height = 2048;
         this.scene.add(this.light);
 
-        const dirLightHelper = new THREE.DirectionalLightHelper(this.light, 50, 0xffffff);
-        this.scene.add(dirLightHelper);
+        this.shadowHelper = new THREE.CameraHelper(this.light.shadow.camera);
+        this.scene.add(this.shadowHelper);
 
         this.clock = new THREE.Clock();
 
@@ -93,7 +106,12 @@ class App{
             url,
             gltf => {
                 this.model = gltf.scene;
-                this.model.castShadow = true;
+                this.model.traverse(node => {
+                    if (node.isMesh){
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                })
                 this.scene.add(this.model);
                 this.animations = {};
                 gltf.animations.forEach(animation => {
@@ -109,14 +127,8 @@ class App{
                 action.play();
                 this.loadingBar.visible = false;
                 this.renderer.setAnimationLoop(this.render.bind(this));
-                
-                const animGUi = this.gui.addFolder('Animation');
-                animGUi.add(this, 'currentClip');
 
-                const posGUI = this.gui.addFolder('Transform');
-                posGUI.add(this.model.position, 'x');
-                posGUI.add(this.model.position, 'y');
-                posGUI.add(this.model.position, 'z');
+                this.addGui();
             },
             xhr => {
                 this.loadingBar.progress = xhr.loaded / xhr.total;
@@ -125,6 +137,57 @@ class App{
                 console.error(err);
             }
         )
+    }
+
+    addGui(){
+        const animGUi = this.gui.addFolder('Animation');
+        animGUi.add(this, 'currentClip');
+
+        const data = {
+            scale: 1,
+        }        
+
+        const transform = this.gui.addFolder('Transform');
+        const modelPos = transform.addFolder('Position');
+        modelPos.add(this.model.position, 'x', -10, 10, 0.1);
+        modelPos.add(this.model.position, 'y', 0, 2, 0.1);
+        modelPos.add(this.model.position, 'z', -10, 10, 0.1);
+        const modelScale = transform.addFolder('Scale');
+        modelScale.add(data, 'scale', 1, 4, 0.1).onChange(()=>{
+            this.model.scale.set(data.scale,data.scale,data.scale);
+        });
+
+        const light = this.gui.addFolder('Light');
+        const lightPos = light.addFolder('Position');
+        lightPos.add(this.light.position, 'x', -50, 50, 0.1);
+        lightPos.add(this.light.position, 'y', -50, 50, 0.1);
+        lightPos.add(this.light.position, 'z', -50, 50, 0.1);
+
+        const shadow = this.gui.addFolder('Shadow Camera');
+        shadow.add(this.light.shadow.mapSize, 
+            'width', [256, 512, 1024, 2048, 4096]);
+        shadow.add(this.light.shadow.mapSize,
+            'height', [256, 512, 1024, 2048, 4096]);
+        shadow.add(this.light.shadow.camera,
+            'left', -10, -1, 0.1).
+            onChange(()=>{
+                this.light.shadow.camera.updateProjectionMatrix();
+            });
+        shadow.add(this.light.shadow.camera,
+            'right', 1, 10, 0.1).
+            onChange(()=>{
+                this.light.shadow.camera.updateProjectionMatrix();
+            });
+        shadow.add(this.light.shadow.camera,
+            'top', 1, 10, 0.1).
+            onChange(()=>{
+                this.light.shadow.camera.updateProjectionMatrix();
+            });
+        shadow.add(this.light.shadow.camera,
+            'bottom', -1, -10, 0.1).
+            onChange(()=>{
+                this.light.shadow.camera.updateProjectionMatrix();
+            });
     }
 
     newAnim(){
@@ -154,7 +217,11 @@ class App{
         if (this.input.isPressed(40)){
             this.model.position.z -= 1*dt;
         }
+        this.balls.forEach((ball) => {
+            ball.rotateY(1.0 * dt);
+        })
         this.stats.update();
+        this.shadowHelper.update();
         this.gui.updateDisplay();
         this.mixer.update(dt);
         this.input.update();
