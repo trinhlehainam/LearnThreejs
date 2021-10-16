@@ -50,12 +50,12 @@ class App{
         }
         console.log(this.balls);
 
-        const planeGeo = new THREE.PlaneGeometry(60, 40);
-        const planeMat = new THREE.MeshPhongMaterial({color: 0x999999});
-        const plane = new THREE.Mesh(planeGeo, planeMat);
-        plane.receiveShadow = true;
-        plane.rotateX(-0.5*Math.PI);
-        this.scene.add(plane);
+        const groundGeo = new THREE.PlaneGeometry(60, 40);
+        const groundMat = new THREE.MeshPhongMaterial({map: loader.load('../../assets/checker.png')});
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.receiveShadow = true;
+        ground.rotateX(-0.5*Math.PI);
+        this.scene.add(ground);
 
         this.ambient = new THREE.AmbientLight(0x222222, 1);
         this.scene.add(this.ambient);
@@ -122,8 +122,8 @@ class App{
                     console.log(key);
                 })
                 this.mixer = new THREE.AnimationMixer(this.model);
-                this.currentClip = 'walk';
-                const action = this.mixer.clipAction(this.animations[this.currentClip]);
+                this.currentAnimKey = 'walk';
+                const action = this.mixer.clipAction(this.animations[this.currentAnimKey]);
                 action.play();
                 this.loadingBar.visible = false;
                 this.renderer.setAnimationLoop(this.render.bind(this));
@@ -141,7 +141,7 @@ class App{
 
     addGui(){
         const animGUi = this.gui.addFolder('Animation');
-        animGUi.add(this, 'currentClip');
+        animGUi.add(this, 'currentAnimKey');
 
         const data = {
             scale: 1,
@@ -193,11 +193,15 @@ class App{
     newAnim(){
         const keys = Object.keys(this.animations);
         const index = Math.floor(Math.random() * keys.length);
-        if(keys[index] == this.currentClip) return
-        this.currentClip = keys[index];
-        const action = this.mixer.clipAction(this.animations[this.currentClip]);
-        action.reset();
-        action.play();
+        if(keys[index] == this.currentAnimKey) return
+        const nextClip = this.mixer.clipAction(this.animations[keys[index]]);
+        const currentClip = this.mixer.clipAction(this.animations[this.currentAnimKey]);
+        currentClip.enabled = false;
+        currentClip.time = 0;
+        nextClip.crossFadeFrom(currentClip, 0.5, true);
+        nextClip.reset();
+        nextClip.play();
+        this.currentAnimKey = keys[index];
     }
 
     render() {
