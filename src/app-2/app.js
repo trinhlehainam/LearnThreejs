@@ -7,6 +7,8 @@ import * as dat from '../../lib/util/dat.gui.module.js'
 import Stats from '../../lib/util/Stats.js';
 
 import {Controller} from './controller.js'
+import {IEntity} from './GameObject/IEntity.js'
+import {TransformComponent} from './Component/TransformComponent.js'
 
 function initStats(type) {
     const panelType = (typeof type !== 'undefined' && type) && (!isNaN(type)) ? parseInt(type) : 0;
@@ -113,6 +115,13 @@ class App{
                     }
                 })
                 this.scene.add(this.model);
+
+                this.entity = new IEntity('player');
+                const transform = new TransformComponent();
+                this.model.position.copy(transform.position);
+                this.model.scale.copy(transform.scale);
+                this.entity.addComponent(transform);
+
                 this.animations = {};
                 gltf.animations.forEach(animation => {
                     this.animations[animation.name.toLowerCase()] = animation;
@@ -126,7 +135,7 @@ class App{
                 const action = this.mixer.clipAction(this.animations[this.currentAnimKey]);
                 action.play();
                 this.loadingBar.visible = false;
-                this.renderer.setAnimationLoop(this.render.bind(this));
+                this.renderer.setAnimationLoop(this.loop.bind(this));
 
                 this.addGui();
             },
@@ -149,12 +158,13 @@ class App{
 
         const transform = this.gui.addFolder('Transform');
         const modelPos = transform.addFolder('Position');
-        modelPos.add(this.model.position, 'x', -10, 10, 0.1);
-        modelPos.add(this.model.position, 'y', 0, 2, 0.1);
-        modelPos.add(this.model.position, 'z', -10, 10, 0.1);
+        const entityTransform = this.entity.getComponent('TransformComponent');
+        modelPos.add(entityTransform.position, 'x', -10, 10, 0.1);
+        modelPos.add(entityTransform.position, 'y', 0, 2, 0.1);
+        modelPos.add(entityTransform.position, 'z', -10, 10, 0.1);
         const modelScale = transform.addFolder('Scale');
         modelScale.add(data, 'scale', 1, 4, 0.1).onChange(()=>{
-            this.model.scale.set(data.scale,data.scale,data.scale);
+            entityTransform.scale.set(data.scale,data.scale,data.scale);
         });
 
         const light = this.gui.addFolder('Light');
@@ -184,7 +194,7 @@ class App{
                 this.light.shadow.camera.updateProjectionMatrix();
             });
         shadow.add(this.light.shadow.camera,
-            'bottom', -1, -10, 0.1).
+            'bottom', -10, -1, 0.1).
             onChange(()=>{
                 this.light.shadow.camera.updateProjectionMatrix();
             });
@@ -197,30 +207,39 @@ class App{
         const nextClip = this.mixer.clipAction(this.animations[keys[index]]);
         const currentClip = this.mixer.clipAction(this.animations[this.currentAnimKey]);
         currentClip.enabled = false;
-        currentClip.time = 0;
-        nextClip.crossFadeFrom(currentClip, 0.5, true);
         nextClip.reset();
+        if (keys[index] == 'shot'){
+            nextClip.setLoop(THREE.LoopOnce, 1);
+            nextClip.clampWhenFinished = true;
+        }
+        nextClip.crossFadeFrom(currentClip, 0.5, true);
         nextClip.play();
         this.currentAnimKey = keys[index];
     }
 
-    render() {
+    loop() {
         const dt = this.clock.getDelta();
+        const transform = this.entity.getComponent('TransformComponent');
         if (this.input.isJustPressed(65)) {
             this.newAnim();
         }
         if (this.input.isPressed(37)){
-            this.model.position.x += 1*dt;
+            transform.position.x += 1*dt;
         }
         if (this.input.isPressed(39)){
-            this.model.position.x -= 1*dt;
+            transform.position.x -= 1*dt;
         }
         if (this.input.isPressed(38)){
-            this.model.position.z += 1*dt;
+            transform.position.z += 1*dt;
         }
         if (this.input.isPressed(40)){
-            this.model.position.z -= 1*dt;
+            transform.position.z -= 1*dt;
         }
+
+        // Update entity's transform to model's transform
+        this.model.position.copy(transform.position);
+        this.model.scale.copy(transform.scale);
+
         this.balls.forEach((ball) => {
             ball.rotateY(1.0 * dt);
         })
